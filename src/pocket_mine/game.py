@@ -1,6 +1,7 @@
-import pygame
-
 import random 
+
+import pygame
+from .mine import Mine
 
 GAME_TITLE = 'PC Mine'
 
@@ -20,20 +21,7 @@ class Game:
         self.clock = pygame.time.Clock()
 
     def run(self):
-        mouse_path = []
-        cur_path = []
-        def create_square():
-            square = pygame.draw.rect(self.GAME_DISPLAY, (255, 255, 255), pygame.Rect(random.randint(25, INITIAL_WINDOW_W - 25), random.randint(25, INITIAL_WINDOW_H - 25), 50, 50))
-            return square
-    
-        def draw_all_lines():
-            self.GAME_DISPLAY.fill((0, 0, 0))
-            for path in mouse_path:
-                i = mouse_path.index(path)
-                pygame.draw.lines(self.GAME_DISPLAY, ((i / len(mouse_path)) * 255, (i / len(mouse_path)) * 128, (i / len(mouse_path)) * 64), False, path)
-
-        cur_square = create_square()
-        clicked = 0
+        self.mine = Mine()
 
         # Game Loop
         crashed = False
@@ -44,22 +32,30 @@ class Game:
                     crashed = True
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = pygame.mouse.get_pos()
-                    if cur_square.collidepoint(pos):
-                        clicked += 1
-                        self.GAME_DISPLAY.fill((0, 0, 0))
-                        mouse_path.append(cur_path)
-                        pygame.draw.lines(self.GAME_DISPLAY, (255, 0, 0), False, cur_path)
-                        cur_path = []
-                        if clicked % 10 == 0 and clicked != 0:
-                            draw_all_lines()
-                        cur_square = create_square()
-                if event.type == pygame.MOUSEMOTION:
-                    cur_path.append(event.pos)
-
-                print(event)
+                    for section in self.mine.mine:
+                        for row in section:
+                            for tile in row:
+                                if not tile:
+                                    continue
+                                if tile.rect.collidepoint(pos):
+                                    if tile.visible:
+                                        self.mine.remove_tile(tile)
+                                    # print(tile.rect.center)
+                # print(event)
 
             # Update
+            self.GAME_DISPLAY.fill((0, 0, 0))
             self.clock.tick(FRAMES_PER_SECOND)
+            for section in self.mine.mine:
+                for row in section:
+                    for tile in row:
+                        if not tile:
+                            continue
+                        if not tile.on_screen():
+                            self.mine.remove_tile(tile)
+                            continue
+                        tile.update()
+                        tile.draw(self.GAME_DISPLAY)
 
             # Render
             pygame.display.update()
